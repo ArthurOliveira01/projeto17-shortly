@@ -4,15 +4,6 @@ import { userSchema, loginSchema } from "../schemas/userSchema.js";
 import { v4 as uuid } from "uuid";
 
 
-function getIndex(array) {
-    const sortedIndexes = array
-    .map((obj, index) => ({ obj, index }))
-    .sort((a, b) => b.obj.visits - a.obj.visits)
-    .map((item) => item.index);
-  
-    return sortedIndexes;
-  }
-
 export async function signup(req, res){
     const {name, email, password, confirmPassword} = req.body;
 
@@ -130,18 +121,23 @@ export async function getRanking(req, res){
             }
             const object = {
                 linksCount: total_links,
-                visitCount: totalvisits
+                visitCount: totalvisits,
+                index: i
             }
             quantity.push(object);
         }
-        const index = getIndex(quantity);
+
+        quantity.sort((a, b) => {
+            return -a.visitCount + b.visitCount;
+        });
+        
         let answer = [];
-        for(let i = 0; i < index.length; i++){
+        for(let i = 0; i < quantity.length; i++){
             const object = {
-                id: users_ids[index[i]],
-                name: username[index[i]],
-                linksCount: quantity[index[i]].linksCount,
-                visitCount: quantity[index[i]].visitCount
+                id: users_ids[quantity[i].index],
+                name: username[quantity[i].index],
+                linksCount: quantity[i].linksCount,
+                visitCount: quantity[i].visitCount
             }
             answer.push(object);
         }
