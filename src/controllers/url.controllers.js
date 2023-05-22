@@ -58,3 +58,52 @@ export async function getByIdUrl(req, res){
         return res.status(500).send(error.message);
     }
 }
+
+export async function openShort(req, res){
+    const { shortUrl } = req.params;
+    try {
+        const exists = await db.query(`SELECT * FROM urls WHERE shorten = '${shortUrl}';`);
+        if(!exists.rows[0]){
+            return res.sendStatus(404);
+        }
+        const url = exists.rows[0].url;
+        const visits = exists.rows[0].visits + 1;
+        await db.query(`UPDATE urls SET visits = '${visits}' WHERE shorten = '${shortUrl}'`)
+        return res.redirect(url);
+    } catch (error) {
+        return res.status(500).send(error.message);
+    }
+}
+
+export async function deleteUrl(req, res){
+    const { id } = req.params;
+    const  authorization  = req.headers.authorization;
+
+    if(authorization === undefined){
+        return res.sendStatus(401);
+    }
+    const token = authorization.replace("Bearer ", "");
+
+    try{
+        const exists = await db.query(`SELECT * FROM tokens WHERE token = '${token}';`);
+        if(!exists.rows[0]){
+            return res.sendStatus(401);
+        }
+        const search = await db.query(`SELECT * FROM urls WHERE id = '${id}';`);
+        if(!search.rows[0]){
+            return res.sendStatus(404);
+        }
+        console.log(search.rows[0].userid);
+        console.log(exists.rows[0].userid);
+        const validate = (search.rows[0].userid !== exists.rows[0].userid);
+        console.log(validate);
+        if(validate){
+            console.log('não é sua url');
+            return res.sendStatus(401);
+        }
+        await db.query(`DELETE FROM urls WHERE id= '${id}'`);
+        return res.sendStatus(204);
+    } catch(error){
+        return res.status(500).send(error.message);
+    }
+}
