@@ -5,10 +5,12 @@ import { v4 as uuid } from "uuid";
 
 
 function getIndex(array) {
-    const indices = Array.from(array.keys());
-    indices.sort((a, b) => array[b].totalvisits - array[a].totalvisits);
-    let firstIndex = indices.slice(0, 10);
-    return firstIndex;
+    const sortedIndexes = array
+    .map((obj, index) => ({ obj, index }))
+    .sort((a, b) => b.obj.visits - a.obj.visits)
+    .map((item) => item.index);
+  
+    return sortedIndexes;
   }
 
 export async function signup(req, res){
