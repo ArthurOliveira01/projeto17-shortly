@@ -13,7 +13,7 @@ export async function signup(req, res){
     }
 
     if(password !== confirmPassword){
-        return res.statusStatus(422).send('Senhas diferentes');
+        return res.status(422).send('Senhas diferentes');
     }
     try {
         const exists = await db.query(`SELECT * FROM accounts WHERE email = '${email}';`);
