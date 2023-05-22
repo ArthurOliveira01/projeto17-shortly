@@ -4,14 +4,23 @@ import { userSchema, loginSchema } from "../schemas/userSchema.js";
 import { v4 as uuid } from "uuid";
 
 
+function getIndex(array) {
+    const indices = Array.from(array.keys());
+    indices.sort((a, b) => array[b].totalvisits - array[a].totalvisits);
+    let firstIndex = indices.slice(0, 10);
+    return firstIndex;
+  }
+
 export async function signup(req, res){
     const {name, email, password, confirmPassword} = req.body;
-    if(password !== confirmPassword){
-        return res.statusStatus(422).send('Senhas diferentes');
-    }
+
     const validation = userSchema.validate(req.body);
     if(validation.error){
         return res.sendStatus(422);
+    }
+
+    if(password !== confirmPassword){
+        return res.statusStatus(422).send('Senhas diferentes');
     }
     try {
         const exists = await db.query(`SELECT * FROM accounts WHERE email = '${email}';`);
@@ -19,7 +28,9 @@ export async function signup(req, res){
             return res.status(409).send('E-mail já cadastrado');
         }
         const passwordHash = bcrypt.hashSync(password, 10);
-        await db.query(`INSERT INTO accounts (name, email, password, createdat) VALUES('${name}', '${email}', '${passwordHash}', CURRENT_TIME);`);
+        const now = new Date();
+        const timestamp = now.toISOString().replace('T', ' ').replace('Z', '');
+        await db.query(`INSERT INTO accounts (name, email, password, createdat) VALUES('${name}', '${email}', '${passwordHash}', '${timestamp}');`);
         return res.status(201).send('Sucesso');
     } catch (error) {
         return res.status(500).send(error.message);
@@ -45,8 +56,13 @@ export async function signin(req, res){
         }
         const token = uuid();
         const userId = exists.rows[0].id;
-        await db.query(`INSERT INTO tokens (token, userId) VALUES('${token}', '${userId}');`);
-        return res.status(200).send(token);
+        const now = new Date();
+        const timestamp = now.toISOString().replace('T', ' ').replace('Z', '');
+        await db.query(`INSERT INTO tokens (token, userId, createdat) VALUES('${token}', '${userId}', '${timestamp}');`);
+        const object = {
+            token: token
+        }
+        return res.status(200).send(object);
     } catch (error) {
         return res.status(500).send(error.message);
     }
@@ -95,7 +111,39 @@ export async function getinfoUser(req, res){
 
 export async function getRanking(req, res){
     try {
-        
+        let users_ids = [];
+        let username = []
+        const users = await db.query(`SELECT * FROM accounts`);
+        for(let i = 0; i < users.rowCount; i++){
+            users_ids.push(users.rows[i].id);
+            username.push(users.rows[i].name);
+        }
+        let quantity = [];
+        for(let i = 0; i < users_ids.length; i++){
+            const urls = await db.query(`SELECT * FROM urls WHERE userid = '${users_ids[i]}';`);
+            const total_links = urls.rowCount;
+            let totalvisits = 0;
+            for(let j = 0; j < total_links; j++){
+                totalvisits += urls.rows[j].visits;
+            }
+            const object = {
+                linksCount: total_links,
+                visitCount: totalvisits
+            }
+            quantity.push(object);
+        }
+        const index = getIndex(quantity);
+        let answer = [];
+        for(let i = 0; i < index.length; i++){
+            const object = {
+                id: users_ids[index[i]],
+                name: username[index[i]],
+                linksCount: quantity[index[i]].linksCount,
+                visitCount: quantity[index[i]].visitCount
+            }
+            answer.push(object);
+        }
+        return res.status(200).send(answer);
     } catch (error) {
         return res.status(500).send(error.message);
     }

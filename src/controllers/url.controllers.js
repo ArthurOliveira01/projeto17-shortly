@@ -25,7 +25,9 @@ export async function postURL(req, res){
         const short = nanoid(8);
         const userId = exists.rows[0].userid;
         console.log(exists.rows[0]);
-        const insert = await db.query(`INSERT INTO urls (url, shorten, userId, createdat) VALUES('${url}', '${short}', '${userId}', CURRENT_TIME) RETURNING id;`);
+        const now = new Date();
+        const timestamp = now.toISOString().replace('T', ' ').replace('Z', '');
+        const insert = await db.query(`INSERT INTO urls (url, shorten, userId, createdat) VALUES('${url}', '${short}', '${userId}', '${timestamp}') RETURNING id;`);
         console.log(insert.rows[0]);
         const id = insert.rows[0].id;
         const response = {
