@@ -132,6 +132,7 @@ export async function getRanking(req, res){
         });
         
         let answer = [];
+        quantity = quantity.slice(0, 10);
         for(let i = 0; i < quantity.length; i++){
             const object = {
                 id: users_ids[quantity[i].index],
